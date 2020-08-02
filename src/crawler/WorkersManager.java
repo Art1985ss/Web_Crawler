@@ -9,21 +9,25 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class ContentScanner extends Thread {
+public class WorkersManager extends Thread {
+    private static final long MIN_PASSED_MILLIS = 1500;
+
+    private final List<CrawlerWorker> workers = new ArrayList<>();
+    private final Queue<Link> linksToProcess = new ConcurrentLinkedQueue<>();
+    private final LinkRepository checkedRepo = new LinkRepository();
+
     private int depth = 1;
     private long timeLimit = 120000;
     private long startMillis;
     private long passedMillis;
     private int maxWorkers;
-    private final Queue<Link> linksToProcess = new ConcurrentLinkedQueue<>();
+
     private TableModel tableModel;
     private Link originalLink;
     private LinkRepository linkRepository;
-    private final LinkRepository checkedRepo = new LinkRepository();
     private JLabel timeLabel;
     private JLabel parsedLabel;
     private JToggleButton buttonToReset;
-    private final List<CrawlerWorker> workers = new ArrayList<>();
 
     @Override
     public void run() {
@@ -32,38 +36,14 @@ public class ContentScanner extends Thread {
 
     private void scan() {
         startMillis = System.currentTimeMillis();
-        passedMillis = System.currentTimeMillis() - startMillis;
-        showTime();
-        tableModel.update();
+        updateData();
         linksToProcess.add(originalLink);
         do {
-            if (workers.size() < maxWorkers && !interrupted() && passedMillis < timeLimit) {
-                Link link = linksToProcess.poll();
-                if (link == null) {
-                    break;
-                }
-                if (depth >= link.getDepth()) {
-                    CrawlerWorker crawlerWorker = new CrawlerWorker().builder()
-                            .setLink(link)
-                            .setLinkRepository(linkRepository)
-                            .setLinksToProcess(linksToProcess)
-                            .setCheckedRepo(checkedRepo)
-                            .setMaxDepth(depth)
-                            .build();
-                    crawlerWorker.start();
-                    workers.add(crawlerWorker);
-                    if (linksToProcess.size() < 2) {
-                        try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
+            Link link = linksToProcess.poll();
+            assignWorker(link);
             updateData();
             checkWorkers(false);
-        } while (linksToProcess.size() > 0 && !interrupted() && passedMillis < timeLimit);
+        } while (linksToProcess.size() > 0 && !isInterrupted() || passedMillis < MIN_PASSED_MILLIS);
         do {
             updateData();
         } while (checkWorkers(true));
@@ -78,6 +58,39 @@ public class ContentScanner extends Thread {
         showTime();
         showParsed();
         tableModel.update();
+    }
+
+    @Override
+    public boolean isInterrupted() {
+        if (interrupted() || passedMillis >= timeLimit) {
+            interrupt();
+            return true;
+        }
+        return false;
+    }
+
+    private void assignWorker(Link link) {
+        if (link == null) {
+            return;
+        }
+        boolean notAssigned = true;
+        while (notAssigned && !isInterrupted()) {
+            if (workers.size() < maxWorkers) {
+                CrawlerWorker crawlerWorker = new CrawlerWorker().builder()
+                        .setLink(link)
+                        .setLinkRepository(linkRepository)
+                        .setLinksToProcess(linksToProcess)
+                        .setCheckedRepo(checkedRepo)
+                        .setMaxDepth(depth)
+                        .build();
+                crawlerWorker.start();
+                workers.add(crawlerWorker);
+                notAssigned = false;
+            } else {
+                checkWorkers(false);
+            }
+            updateData();
+        }
     }
 
     private boolean checkWorkers(boolean interrupt) {
@@ -109,7 +122,7 @@ public class ContentScanner extends Thread {
 
 
     public Builder builder() {
-        return new ContentScanner().new Builder();
+        return new WorkersManager().new Builder();
     }
 
     public class Builder {
@@ -119,52 +132,52 @@ public class ContentScanner extends Thread {
         }
 
         public Builder setDepth(int depth) {
-            ContentScanner.this.depth = depth;
+            WorkersManager.this.depth = depth;
             return this;
         }
 
         public Builder setTimeLimit(long timeLimit) {
-            ContentScanner.this.timeLimit = timeLimit;
+            WorkersManager.this.timeLimit = timeLimit;
             return this;
         }
 
         public Builder setTableModel(TableModel tableModel) {
-            ContentScanner.this.tableModel = tableModel;
+            WorkersManager.this.tableModel = tableModel;
             return this;
         }
 
         public Builder setOriginalLink(Link originalLink) {
-            ContentScanner.this.originalLink = originalLink;
+            WorkersManager.this.originalLink = originalLink;
             return this;
         }
 
         public Builder setLinkRepository(LinkRepository linkRepository) {
-            ContentScanner.this.linkRepository = linkRepository;
+            WorkersManager.this.linkRepository = linkRepository;
             return this;
         }
 
         public Builder setTimerLabel(JLabel label) {
-            ContentScanner.this.timeLabel = label;
+            WorkersManager.this.timeLabel = label;
             return this;
         }
 
         public Builder setMaxWorkers(int maxWorkers) {
-            ContentScanner.this.maxWorkers = maxWorkers;
+            WorkersManager.this.maxWorkers = maxWorkers;
             return this;
         }
 
         public Builder setParsedLabel(JLabel parsedLabel) {
-            ContentScanner.this.parsedLabel = parsedLabel;
+            WorkersManager.this.parsedLabel = parsedLabel;
             return this;
         }
 
         public Builder setButtonToReset(JToggleButton buttonToReset) {
-            ContentScanner.this.buttonToReset = buttonToReset;
+            WorkersManager.this.buttonToReset = buttonToReset;
             return this;
         }
 
-        public ContentScanner build() {
-            return ContentScanner.this;
+        public WorkersManager build() {
+            return WorkersManager.this;
         }
 
 

@@ -1,5 +1,6 @@
 package crawler;
 
+
 import javax.swing.*;
 import java.awt.*;
 import java.net.MalformedURLException;
@@ -17,7 +18,7 @@ public class FileLoader extends JPanel {
     private final JLabel parsedLabel;
     private final TableModel model;
     private final LinkRepository linkRepository;
-    private ContentScanner contentScanner;
+    private WorkersManager workersManager;
 
 
     public FileLoader(TableModel model, LinkRepository linkRepository) {
@@ -49,7 +50,7 @@ public class FileLoader extends JPanel {
 
         workersInput = new JTextField();
         workersInput.setName("WorkersTextField");
-        workersInput.setText("10");
+        workersInput.setText("40");
         workersInput.setVisible(true);
 
         JLabel depthLabel = new JLabel("Maximum depth:");
@@ -210,10 +211,10 @@ public class FileLoader extends JPanel {
         } catch (MalformedURLException ignored) {
             throw new CrawlerException("Input link is not valid");
         }
-        if (contentScanner != null) {
-            contentScanner.interrupt();
+        if (workersManager != null) {
+            workersManager.interrupt();
         }
-        contentScanner = new ContentScanner().builder()
+        workersManager = new WorkersManager().builder()
                 .setDepth(depth)
                 .setOriginalLink(link)
                 .setLinkRepository(linkRepository)
@@ -224,15 +225,15 @@ public class FileLoader extends JPanel {
                 .setButtonToReset(button)
                 .setMaxWorkers(workers)
                 .build();
-        contentScanner.start();
+        workersManager.start();
     }
 
 
     private void stop() {
-        if (contentScanner != null) {
-            contentScanner.interrupt();
+        if (workersManager != null) {
+            workersManager.interrupt();
         }
-        contentScanner = null;
+        workersManager = null;
     }
 
 

@@ -24,8 +24,8 @@ public class CrawlerWorker extends Thread {
         try {
             setText(link);
             getTitleFrom(link);
-            getLinksToProcess(link);
             linkRepository.add(link);
+            getLinksToProcess(link);
         } catch (CrawlerException e) {
             System.out.println(e.getMessage());
         }
