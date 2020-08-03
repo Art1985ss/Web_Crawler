@@ -194,7 +194,7 @@ public class FileLoader extends JPanel {
     }
 
     private void start() throws CrawlerException {
-        linkRepository.clear();
+        //linkRepository.clear();
         int depth = Integer.MAX_VALUE;
         if (depthCheckBox.isSelected()) {
             depth = Integer.parseInt(depthInput.getText());

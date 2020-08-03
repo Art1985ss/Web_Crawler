@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TableModel extends AbstractTableModel {
-    private final String[] columnNames = {"URL", "Title"};
+    private final String[] columnNames = {"URL", "Title", "Depth"};
     private final LinkRepository linkRepository;
     private List<Link> data;
 
@@ -41,7 +41,8 @@ public class TableModel extends AbstractTableModel {
         switch (columnIndex) {
             case 0:
                 return URL.class;
-            case 1:
+            case 2:
+                return Integer.class;
             default:
                 return String.class;
         }
@@ -55,6 +56,8 @@ public class TableModel extends AbstractTableModel {
                 return link.getUrl();
             case 1:
                 return link.getTitle();
+            case 2 :
+                return link.getDepth();
             default:
                 return null;
         }
